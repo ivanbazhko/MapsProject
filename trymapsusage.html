@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Routes Map</title>
+    <meta charset="utf-8" />
+    <script type='text/javascript' src='http://www.bing.com/api/maps/mapcontrol?callback=loadMapScenario' async
+        defer></script>
+    <script type='text/javascript'>
+        function loadMapScenario() {
+            var map = new Microsoft.Maps.Map(document.getElementById('myMap'), {
+                credentials: '',
+                center: new Microsoft.Maps.Location(0.0, 0.0),
+                zoom: 1
+            });
+
+
+
+
+            var geoDataRequestOptions = {
+                entityType: 'CountryRegion'
+            };
+
+            //Load the Bing Spatial Data Services module.
+            Microsoft.Maps.loadModule('Microsoft.Maps.SpatialDataService', function () {
+
+                //Use the GeoData API manager to get the boundaries of the zip codes.
+                Microsoft.Maps.SpatialDataService.GeoDataAPIManager.getBoundary(
+                    new Microsoft.Maps.Location(79.76148, 24.42578),
+                    geoDataRequestOptions,
+                    map,
+                    function (data) {
+                        //Add the polygons to the map.
+                        if (data.results && data.results.length > 0) {
+                            map.entities.push(data.results[0].Polygons);
+                        }
+                    });
+            });
+
+
+
+
+
+            Microsoft.Maps.loadModule("Microsoft.Maps.SpatialMath", function () {
+
+                class Route {
+                    constructor(map, name1, point1, name2, point2) {
+                        this.name1 = name1;
+                        this.point1 = point1;
+                        this.name2 = name2;
+                        this.point2 = point2;
+                        this.midpoint = Microsoft.Maps.SpatialMath.interpolate(point1, point2);
+                        this.distance = Microsoft.Maps.SpatialMath.getDistanceTo(point1, point2, Microsoft.Maps.SpatialMath.DistanceUnits.Kilometers).toFixed(0);
+                        this.infobox = new Microsoft.Maps.Infobox(this.midpoint, {
+                            title: name1 + " - " + name2,
+                            description: this.distance + " km",
+                            visible: false
+                        });
+                        this.infobox.setMap(map);
+                        this.coords = [point1, point2];
+                        this.path = Microsoft.Maps.SpatialMath.getGeodesicPath(this.coords);
+                        this.polyLine = new Microsoft.Maps.Polyline(this.path, {
+                            strokeColor: 'black',
+                            strokeThickness: 1,
+                            strokeDashArray: [4, 4]
+                        });
+                        map.entities.push(this.polyLine);
+                        Microsoft.Maps.Events.addHandler(this.polyLine, 'mouseover', () => {
+                            this.mouseOn();
+                        });
+                        Microsoft.Maps.Events.addHandler(this.polyLine, 'mouseout', () => {
+                            this.mouseOff();
+                        });
+                    }
+
+                    mouseOn() {
+                        this.changeLine('red');
+                        this.changeInfoboxVisibility(true);
+                    }
+
+                    mouseOff() {
+                        this.changeLine('black');
+                    }
+
+                    changeInfoboxVisibility(visibility) {
+                        this.infobox.setOptions({
+                            visible: visibility
+                        });
+                    }
+
+                    changeLine(color) {
+                        this.polyLine.setOptions({
+                            strokeColor: color
+                        })
+                    }
+                }
+
+                ///////////////////////////////////////////////////////////////////////
+
+                var center = map.getCenter();
+                var citySeattle = new Microsoft.Maps.Location(47.60357, -122.32945);
+                var cityMinsk = new Microsoft.Maps.Location(53.90378, 27.55139);
+                var cityAuckland = new Microsoft.Maps.Location(-36.84979, 174.76428);
+                var cityCapeTown = new Microsoft.Maps.Location(-33.96396, 18.58465);
+                var islandTahiti = new Microsoft.Maps.Location(-17.55807, -149.61070);
+                var cityAustin = new Microsoft.Maps.Location(30.31303, -97.72634);
+
+                var pin2 = new Microsoft.Maps.Pushpin(citySeattle, {
+                    title: 'Seattle',
+                    color: 'green'
+                });
+
+                var pin3 = new Microsoft.Maps.Pushpin(cityMinsk, {
+                    title: 'Minsk',
+                    color: 'blue'
+                });
+
+                var pin4 = new Microsoft.Maps.Pushpin(islandTahiti, {
+                    title: 'Tahiti',
+                    color: 'red'
+                });
+
+                var pin5 = new Microsoft.Maps.Pushpin(cityAuckland, {
+                    title: 'Auckland',
+                    color: 'black'
+                });
+
+                var pin6 = new Microsoft.Maps.Pushpin(cityCapeTown, {
+                    title: 'Cape Town',
+                    color: 'yellow'
+                });
+
+                var pin7 = new Microsoft.Maps.Pushpin(cityAustin, {
+                    title: 'Austin',
+                    color: 'orange'
+                });
+
+                map.entities.push(pin2);
+                map.entities.push(pin3);
+                map.entities.push(pin4);
+                map.entities.push(pin5);
+                map.entities.push(pin6);
+                map.entities.push(pin7);
+
+                ///////////////////////////////////////////////////////////////////////
+
+                routeMinskTahiti = new Route(map, 'Minsk', cityMinsk, 'Tahiti', islandTahiti);
+                routeMinskSeattle = new Route(map, 'Minsk', cityMinsk, 'Seattle', citySeattle);
+                routeMinskAuckland = new Route(map, 'Minsk', cityMinsk, 'Auckland', cityAuckland);
+                routeMinskCapeTown = new Route(map, 'Minsk', cityMinsk, 'Cape Town', cityCapeTown);
+                routeSeattleAustin = new Route(map, 'Seattle', citySeattle, 'Austin', cityAustin);
+            });
+        }
+
+    </script>
+</head>
+
+<body>
+    <div id='myMap' style='width: 100%; height: 100%;'></div>
+</body>
+
+</html>
